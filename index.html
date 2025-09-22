@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myers Morning Shack - Employee Portal</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- START: Firebase SDK and Configuration (Bulletproof Version) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyB3mfWpRVKi9wU5wC_FK2fwEZuZ8Rd4O2M",
+          authDomain: "myers-morning-shack.firebaseapp.com",
+          projectId: "myers-morning-shack",
+          storageBucket: "myers-morning-shack.firebasestorage.app",
+          messagingSenderId: "870541875002",
+          appId: "1:870541875002:web:96edc48b4bf0b1ba0ae203"
+        };
+  
+        try {
+          console.log("Attempting to initialize Firebase...");
+          const app = initializeApp(firebaseConfig);
+          
+          console.log("Firebase App Initialized. Getting Firestore...");
+          window.db = getFirestore(app);
+          
+          console.log("Firestore instance obtained. Setting up functions...");
+          window.firestoreFunctions = { collection, addDoc, getDocs, doc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp, getDoc };
+          window.isFirebaseReady = true; 
+          
+          console.log("%cFirebase connection successful. Dispatching 'firebaseReady' event.", "color: green;");
+          const firebaseReadyEvent = new CustomEvent('firebaseReady', { detail: { db: window.db, functions: window.firestoreFunctions } });
+          document.dispatchEvent(firebaseReadyEvent);
+  
+        } catch (error) {
+          console.error("%cCRITICAL: A raw error occurred during Firebase initialization.", "color: red; font-weight: bold;");
+          console.error(error); // This will display the true error message
+          window.isFirebaseReady = false; 
+          const firebaseErrorEvent = new CustomEvent('firebaseError', { detail: { error: error } });
+          document.dispatchEvent(firebaseErrorEvent);
+        }
+      </script>
+      <!-- END: Firebase SDK -->
+
+    <script defer src="utility.js"></script>
+    <script defer src="main.js"></script>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Loading Portal...</p>
+        </div>
+    </div>
+
+    <div class="navbar">
+        <div class="dropdown">
+            <button class="logo-container">
+                <img src="https://i.ibb.co/DHnJp4KC/IMG-1186-removebg-preview.png" alt="Logo">
+            </button>
+            <div class="dropdown-content">
+                <a href="index.html">Employee Portal</a>
+                <a href="ads.html">Ads & Menu</a>
+                <a href="manager.html">Manager Portal</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content-wrapper">
+        <header>
+            <img class="header-logo" src="https://i.ibb.co/DHnJp4KC/IMG-1186-removebg-preview.png" alt="Myers Morning Shack Logo">
+        </header>
+
+        <div id="employee-login-container" class="content-block" style="max-width: 450px;">
+            <h1>Employee Access</h1>
+            <form id="employee-login-form">
+                <div class="form-group">
+                    <label for="employee-password">Enter Access Password:</label>
+                    <input type="password" id="employee-password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <p id="login-error" class="error-message" style="display: none;">Invalid Password.</p>
+        </div>
+
+        <div id="employee-content" class="content-block" style="display: none; max-width: 800px;">
+            <!-- TIME CLOCK SECTION -->
+            <h1>Time Clock</h1>
+            <div class="form-group">
+                <label for="employee-select">Select Your Name:</label>
+                <select id="employee-select">
+                    <option value="">-- Please Select --</option>
+                </select>
+            </div>
+            <div id="time-clock-interface" style="display: none;">
+                <div id="time-clock-status" class="status-box">You are currently clocked out.</div>
+                <div id="time-clock-controls">
+                    <button id="clock-in-btn" class="action-button clock-in-btn" disabled>Clock In</button>
+                    <button id="clock-out-btn" class="action-button clock-out-btn" style="display: none;">Clock Out</button>
+                </div>
+                <p id="clock-out-message" class="success-message" style="display: none;"></p>
+            </div>
+            
+            <hr>
+
+            <!-- POS CALCULATOR SECTION -->
+            <h1>POS Terminal</h1>
+            <div id="pos-items-container" class="pos-grid">
+                <!-- POS items will be injected here by main.js -->
+            </div>
+            <div class="calculator-actions">
+                <button id="clear-pos-btn" class="action-button clear-button">Clear Cart</button>
+            </div>
+            <h1 class="total-display">Total: <span id="pos-total">$0.00</span></h1>
+            <button id="checkout-pos-btn" class="action-button">Checkout</button>
+            <p id="pos-status-message" class="success-message" style="display: none;"></p>
+        </div> 
+
+    </div> 
+
+        <!-- NEW: Flavor Picker Modal -->
+        <div id="modal-overlay" style="display: none;">
+            <div id="flavor-modal" class="content-block">
+              <h2 id="modal-title">Select Flavors</h2>
+              <p id="flavor-counter">0 of 12 selected</p>
+              <hr>
+              <div id="flavor-grid" class="pos-grid">
+                <!-- Donut flavor options will be injected here by JavaScript -->
+              </div>
+              <div class="modal-actions">
+                <button id="add-dozen-to-cart-btn" class="action-button">Add to Cart</button>
+                <button id="cancel-dozen-btn" class="action-button clear-button">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <!-- End of Modal -->
+    
+    <footer>
+        <p>Website designed by Preston Stone / Lilcrash15 for Seth Myers.</p>
+        <p>To be used by Myers Morning Shack on BLRP only.</p>
+    </footer>
+</body>
+</html>

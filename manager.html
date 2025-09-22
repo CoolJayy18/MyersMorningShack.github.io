@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myers Morning Shack - Manager Portal</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- START: Firebase SDK and Configuration (Bulletproof Version) -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      
+      const firebaseConfig = {
+        apiKey: "AIzaSyB3mfWpRVKi9wU5wC_FK2fwEZuZ8Rd4O2M",
+        authDomain: "myers-morning-shack.firebaseapp.com",
+        projectId: "myers-morning-shack",
+        storageBucket: "myers-morning-shack.firebasestorage.app",
+        messagingSenderId: "870541875002",
+        appId: "1:870541875002:web:96edc48b4bf0b1ba0ae203"
+      };
+
+      try {
+        console.log("Attempting to initialize Firebase...");
+        const app = initializeApp(firebaseConfig);
+        
+        console.log("Firebase App Initialized. Getting Firestore...");
+        window.db = getFirestore(app);
+        
+        console.log("Firestore instance obtained. Setting up functions...");
+        window.firestoreFunctions = { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, getDoc, setDoc };
+        window.isFirebaseReady = true; 
+        
+        console.log("%cFirebase connection successful. Dispatching 'firebaseReady' event.", "color: green;");
+        const firebaseReadyEvent = new CustomEvent('firebaseReady', { detail: { db: window.db, functions: window.firestoreFunctions } });
+        document.dispatchEvent(firebaseReadyEvent);
+
+      } catch (error) {
+        console.error("%cCRITICAL: A raw error occurred during Firebase initialization.", "color: red; font-weight: bold;");
+        console.error(error); // This will display the true error message
+        window.isFirebaseReady = false; 
+        const firebaseErrorEvent = new CustomEvent('firebaseError', { detail: { error: error } });
+        document.dispatchEvent(firebaseErrorEvent);
+      }
+    </script>
+    <!-- END: Firebase SDK -->
+
+    <script defer src="utility.js"></script>
+    <script defer src="manager.js"></script>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Loading Manager Portal...</p>
+        </div>
+    </div>
+
+    <div class="navbar">
+        <div class="dropdown">
+            <button class="logo-container">
+                <img src="https://i.ibb.co/DHnJp4KC/IMG-1186-removebg-preview.png" alt="Logo">
+            </button>
+            <div class="dropdown-content">
+                <a href="index.html">Employee Portal</a>
+                <a href="ads.html">Ads & Menu</a>
+                <a href="manager.html">Manager Portal</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-content-wrapper">
+        <header>
+            <img class="header-logo" src="https://i.ibb.co/DHnJp4KC/IMG-1186-removebg-preview.png" alt="Myers Morning Shack Logo">
+        </header>
+
+        <div id="manager-login-container" class="content-block" style="max-width: 450px;">
+            <h1>Manager Access</h1>
+            <form id="manager-login-form">
+                <div class="form-group">
+                    <label for="manager-password">Enter Manager Password:</label>
+                    <input type="password" id="manager-password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <p id="manager-login-error" class="error-message" style="display: none;">Invalid Manager Password.</p>
+        </div>
+
+        <div id="manager-content" style="display: none; width: 100%; max-width: 1100px;">
+            
+            <div id="password-management-section" class="content-block">
+                <h2>Site Passwords</h2>
+                <form id="password-form">
+                    <div class="form-group">
+                        <label for="new-employee-password">New Employee Password:</label>
+                        <input type="text" id="new-employee-password" placeholder="Enter new shared password for employees">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-manager-password">New Manager Password:</label>
+                        <input type="text" id="new-manager-password" placeholder="Enter new password for this portal">
+                    </div>
+                    <div class="form-buttons">
+                        <button type="button" id="save-passwords-btn" class="action-button" disabled>Save Passwords</button>
+                    </div>
+                </form>
+                <p id="password-status-message" class="success-message" style="display: none;"></p>
+            </div>
+
+            <div id="employee-management-section" class="content-block">
+                <h2>Manage Employees</h2>
+                <form id="employee-form">
+                    <h3 id="employee-form-title">Add New Employee</h3>
+                    <input type="hidden" id="edit-employee-id">
+                    <div class="form-group">
+                        <label for="employee-name">Full Name:</label>
+                        <input type="text" id="employee-name" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="employee-id-number">Player ID (SSN):</label>
+                        <input type="text" id="employee-id-number" placeholder="e.g., 123456" required>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="employee-authorized">
+                        <label for="employee-authorized">Is an authorized user? (Optional)</label>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="button" id="save-employee-btn" class="action-button" disabled>Add Employee</button>
+                        <button type="button" id="cancel-edit-btn" class="action-button clear-button" style="display:none;">Cancel Edit</button>
+                    </div>
+                </form>
+                <hr>
+                <h3>Current Employees</h3>
+                <div id="employee-list" class="log-container">
+                    <p><i>Loading employees...</i></p>
+                </div>
+            </div>
+
+            <div id="transaction-log-section" class="content-block">
+                <h2>POS Transaction Logs</h2>
+                <button id="export-transactions-btn" class="action-button" style="margin-bottom: 20px;" disabled>Export Transactions to CSV</button>
+                <div id="transaction-log-display" class="log-container">
+                    <p><i>Loading transaction logs...</i></p>
+                </div>
+            </div>
+
+            <div id="time-log-section" class="content-block">
+                <h2>Employee Time Logs</h2>
+                <button id="export-time-logs-btn" class="action-button" style="margin-bottom: 20px;" disabled>Export Time Logs to CSV</button>
+                <div id="time-log-display" class="log-container">
+                    <p><i>Loading time logs...</i></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Website designed by Preston Stone / Lilcrash15 for Seth Myers.</p>
+        <p>To be used by Myers Morning Shack on BLRP only.</p>
+    </footer>
+</body>
+</html>

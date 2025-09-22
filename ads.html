@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Myers Morning Ads & Menu</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <style>
+    .ad-list-container {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background-color: rgba(30, 30, 30, 0.7);
+      padding: 8px;
+    }
+    .ad-list-item {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      background-color: #444;
+      color: #fff;
+      cursor: pointer;
+      white-space: pre-wrap;
+    }
+    .ad-list-item:hover {
+      background-color: #31708f;
+    }
+    #copy-status {
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body class="htmlbackground">
+  <div class="navbar">
+    <div class="dropdown">
+        <button class="logo-container">
+            <img src="https://i.ibb.co/DHnJp4KC/IMG-1186-removebg-preview.png" alt="Logo">
+        </button>
+        <div class="dropdown-content">
+            <a href="index.html">Employee Portal</a>
+            <a href="ads.html">Ads & Menu</a>
+            <a href="manager.html">Manager Portal</a>
+        </div>
+    </div>
+</div>
+
+  <div class="page-content-wrapper">
+    <header>
+      <img class="header-logo" src="https://i.ibb.co/DHnJp4KC/IMG-1186-removebg-preview.png" alt="Myers Morning Shack Logo">
+  </header>
+    <div class="content-block" style="max-width: 600px; margin: 30px auto;">
+      <h2 style="text-align:center;">Select Ad to Copy</h2>
+
+      <!-- Ad Type Selector -->
+      <div class="form-group">
+        <label for="ad-status-selector">Ad Type:</label>
+        <select id="ad-status-selector" class="form-control" style="width: 100%; font-size: 0.95rem; padding: 8px;">
+          <option value="OPEN">Open</option>
+          <option value="CLOSING">Closing</option>
+        </select>
+      </div>
+      <br>
+        <!-- Ad List Display -->
+        <div id="ad-list" class="ad-list-container"></div>
+
+        <!-- Copy Status -->
+        <div class="form-group" style="text-align: center;">
+          <p id="copy-status"></p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <h1 style="text-align: center;">Menu</h1>
+        <img class="menu-image" src="https://i.ibb.co/s90pK3xY/ABE9-DDCF-9617-4-C74-AF13-413-AB8-FF5-BC2.jpg" alt="Myers Morning Shack Menu">
+        <h1 style="text-align: center;">Flavors</h1>
+        <img class="menu-image" src="https://i.ibb.co/QvprYZHj/D1-A32-AE9-84-CA-418-F-A8-DC-8-BDB5665-B192.jpg" alt="Donut Flavor List">
+      </div>
+  </div>
+
+  <script src="ads.js"></script>
+  <script src="utility.js"></script>
+</body>
+<footer>
+  <p>Website designed by Preston Stone / Lilcrash15 for Seth Myers.</p>
+  <p>To be used by Myers Morning Shack on BLRP only.</p>
+</footer>
+</html>
