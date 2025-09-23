@@ -6,7 +6,7 @@
     <title>Myers Morning Shack - Employee Portal</title>
     <link rel="stylesheet" href="style.css">
 
-    <!-- START: Firebase SDK and Configuration (Bulletproof Version) -->
+    <!-- START: Firebase SDK and Configuration -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -21,23 +21,14 @@
         };
   
         try {
-          console.log("Attempting to initialize Firebase...");
           const app = initializeApp(firebaseConfig);
-          
-          console.log("Firebase App Initialized. Getting Firestore...");
           window.db = getFirestore(app);
-          
-          console.log("Firestore instance obtained. Setting up functions...");
           window.firestoreFunctions = { collection, addDoc, getDocs, doc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp, getDoc };
           window.isFirebaseReady = true; 
-          
-          console.log("%cFirebase connection successful. Dispatching 'firebaseReady' event.", "color: green;");
           const firebaseReadyEvent = new CustomEvent('firebaseReady', { detail: { db: window.db, functions: window.firestoreFunctions } });
           document.dispatchEvent(firebaseReadyEvent);
-  
         } catch (error) {
-          console.error("%cCRITICAL: A raw error occurred during Firebase initialization.", "color: red; font-weight: bold;");
-          console.error(error); // This will display the true error message
+          console.error("CRITICAL: A raw error occurred during Firebase initialization.", error);
           window.isFirebaseReady = false; 
           const firebaseErrorEvent = new CustomEvent('firebaseError', { detail: { error: error } });
           document.dispatchEvent(firebaseErrorEvent);
@@ -109,34 +100,36 @@
             <!-- POS CALCULATOR SECTION -->
             <h1>POS Terminal</h1>
             <div id="pos-items-container" class="pos-grid">
-                <!-- POS items will be injected here by main.js -->
+              <!-- POS items will be injected here by main.js -->
             </div>
+      
             <div class="calculator-actions">
                 <button id="clear-pos-btn" class="action-button clear-button">Clear Cart</button>
             </div>
             <h1 class="total-display">Total: <span id="pos-total">$0.00</span></h1>
             <button id="checkout-pos-btn" class="action-button">Checkout</button>
             <p id="pos-status-message" class="success-message" style="display: none;"></p>
+
         </div> 
 
     </div> 
 
-        <!-- NEW: Flavor Picker Modal -->
-        <div id="modal-overlay" style="display: none;">
-            <div id="flavor-modal" class="content-block">
-              <h2 id="modal-title">Select Flavors</h2>
-              <p id="flavor-counter">0 of 12 selected</p>
-              <hr>
-              <div id="flavor-grid" class="pos-grid">
-                <!-- Donut flavor options will be injected here by JavaScript -->
-              </div>
-              <div class="modal-actions">
-                <button id="add-dozen-to-cart-btn" class="action-button">Add to Cart</button>
-                <button id="cancel-dozen-btn" class="action-button clear-button">Cancel</button>
-              </div>
-            </div>
+    <!-- Flavor Picker Modal -->
+    <div id="modal-overlay" style="display: none;">
+        <div id="flavor-modal" class="content-block">
+          <h2 id="modal-title">Select Flavors</h2>
+          <p id="flavor-counter">0 of 12 selected</p>
+          <hr>
+          <div id="flavor-grid" class="pos-grid">
+            <!-- Donut flavor options will be injected here by JavaScript -->
           </div>
-          <!-- End of Modal -->
+          <div class="modal-actions">
+            <button id="add-dozen-to-cart-btn" class="action-button">Add to Cart</button>
+            <button id="cancel-dozen-btn" class="action-button clear-button">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <!-- End of Modal -->
     
     <footer>
         <p>Website designed by Preston Stone / Lilcrash15 for Seth Myers.</p>
