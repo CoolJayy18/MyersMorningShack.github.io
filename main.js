@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const flavorGrid = document.getElementById('flavor-grid');
     const addDozenToCartBtn = document.getElementById('add-dozen-to-cart-btn');
     const cancelDozenBtn = document.getElementById('cancel-dozen-btn');
+    const currentCartSection = document.getElementById('current-cart-section');
+    const currentCartDisplay = document.getElementById('current-cart-display');
 
     if (!employeeContent) { hideLoadingScreen(); return; }
 
@@ -37,11 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let appLogicHasRun = false;
     let currentClockInId = null;
     let selectedFlavorCounts = {};
-    let currentDozenConfig = {};
+    let currentModalConfig = {};
 
     // --- Data Structures ---
     const posItems = [
-        { name: "Donut", price: 100, image: "https://i.ibb.co/0ptXYSR5/EC631-C44-6-C40-49-CF-B2-D1-1-E3-B865-F5848.png", isSingleFlavorSelection: true, dozenSize: 1 },
+        { name: "Donut", price: 100, image: "https://i.ibb.co/0ptXYSR5/EC631-C44-6-C40-49-CF-B2-D1-1-E3-B865-F5848.png", isMultiSingle: true, maxSelection: 5 },
         { name: "Half Dozen", price: 550, image: "https://i.ibb.co/5g1P2hL4/7-E3-A7-FA5-46-B9-4-AC3-ADBA-2-F7165956-B39-removebg-preview.png", isDozen: true, dozenSize: 6 },
         { name: "Full Dozen", price: 1000, image: "https://i.ibb.co/sJwyM2Bk/C12-F0-C4-E-B98-D-4710-B67-D-FEE8-B71-B003-F-removebg-preview.png", isDozen: true, dozenSize: 12 },
         { name: "House Coffee", price: 80, image: "https://i.ibb.co/v4j4vq4C/DD60-EFCD-D90-D-47-AD-BFEB-F841-F435-AE46-removebg-preview.png" },
@@ -50,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: "Redwood Pack", price: 500, image: "https://i.ibb.co/JWqfP8SF/89811-C3-D-3-AD7-4612-80-EE-388-D9-BD4-AE59-removebg-preview.png" },
         { name: "Redwood Gold Pack", price: 775, image: "https://i.ibb.co/39yqPdqp/30023628-D212-488-B-A8-CF-10-E0-F182-C165-removebg-preview.png" },
     ];
-
     const donutFlavors = [
         { name: "Glazed", image: "https://i.ibb.co/4wdf4Gnk/EC631-C44-6-C40-49-CF-B2-D1-1-E3-B865-F5848.png" },
         { name: "Chocolate", image: "https://i.ibb.co/gMXJxbpt/4-EC92-ADB-F67-A-4-F40-8311-CFB12-E577-A03.png" },
@@ -144,16 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function clockIn() {
-        const employeeId = employeeSelect.value;
-        if (!employeeId) return;
+        if (!employeeSelect.value) return;
         const employeeName = employeeSelect.options[employeeSelect.selectedIndex].dataset.name;
         try {
             await firestore.addDoc(firestore.collection(db, "timeEntries"), {
-                employeeId, employeeName,
+                employeeId: employeeSelect.value, employeeName,
                 clockInTime: firestore.serverTimestamp(),
                 clockOutTime: null, durationMinutes: null, status: "Active"
             });
-            await checkClockInStatus(employeeId);
+            await checkClockInStatus(employeeSelect.value);
         } catch (error) { console.error("Error clocking in:", error); }
     }
 
@@ -165,8 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (entrySnap.exists()) {
                 const clockInTime = entrySnap.data().clockInTime.toDate();
                 const clockOutTime = new Date();
-                const durationMs = clockOutTime - clockInTime;
-                const durationMinutes = Math.round(durationMs / 60000);
+                const durationMinutes = Math.round((clockOutTime - clockInTime) / 60000);
                 await firestore.updateDoc(entryRef, {
                     clockOutTime: firestore.Timestamp.fromDate(clockOutTime),
                     durationMinutes, status: "Completed"
@@ -184,15 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
         posItems.forEach(item => {
             const itemEl = document.createElement('div');
             itemEl.className = 'pos-item';
-            itemEl.innerHTML = `
-                <img src="${item.image}" alt="${item.name}">
-                <p>${item.name} - $${item.price.toLocaleString()}</p>
-                <input type="number" class="pos-quantity" min="0" placeholder="0" data-price="${item.price}" data-name="${item.name}">
-            `;
+            itemEl.innerHTML = `<img src="${item.image}" alt="${item.name}"><p>${item.name} - $${item.price.toLocaleString()}</p><input type="number" class="pos-quantity" min="0" value="0" readonly data-price="${item.price}" data-name="${item.name}">`;
+            
             itemEl.addEventListener('click', (e) => {
-                if (e.target.tagName === 'INPUT') return;
-                if (item.isDozen || item.isSingleFlavorSelection) {
-                    openFlavorModal(item.name, item.price, item.dozenSize);
+                if (item.isDozen || item.isMultiSingle) {
+                    const size = item.isDozen ? item.dozenSize : item.maxSelection;
+                    openFlavorModal(item.name, item.price, size, item.isMultiSingle || false);
                 } else {
                     const input = itemEl.querySelector('.pos-quantity');
                     input.value = (parseInt(input.value) || 0) + 1;
@@ -203,9 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function openFlavorModal(name, price, size) {
-        currentDozenConfig = { name, price, size };
-        modalTitle.textContent = size === 1 ? 'Select a Flavor' : `Select ${size} Flavors for ${name}`;
+    function openFlavorModal(name, price, size, isMultiSingle) {
+        currentModalConfig = { name, price, size, isMultiSingle };
+        modalTitle.textContent = isMultiSingle ? `Select up to ${size} Donuts` : `Select ${size} Flavors for ${name}`;
         
         const oldInstruction = document.getElementById('modal-instruction');
         if (oldInstruction) oldInstruction.remove();
@@ -215,23 +211,22 @@ document.addEventListener('DOMContentLoaded', () => {
         instructionText.style.marginTop = '-10px';
         modalTitle.insertAdjacentElement('afterend', instructionText);
 
-        selectedFlavorCounts = {};
+        const targetInput = document.querySelector(`.pos-quantity[data-name="${name}"]`);
+        selectedFlavorCounts = (isMultiSingle && targetInput.dataset.flavors) ? JSON.parse(targetInput.dataset.flavors) : {};
+        
         updateFlavorCounter();
-
         flavorGrid.innerHTML = '';
         donutFlavors.forEach(flavor => {
             const flavorEl = document.createElement('div');
             flavorEl.className = 'flavor-item';
-            flavorEl.innerHTML = `
-                <div class="flavor-item-remove">&times;</div>
-                <div class="flavor-item-counter">0</div>
-                <img src="${flavor.image}" alt="${flavor.name}">
-                <p>${flavor.name}</p>
-            `;
+            flavorEl.innerHTML = `<div class="flavor-item-remove">&times;</div><div class="flavor-item-counter">0</div><img src="${flavor.image}" alt="${flavor.name}"><p>${flavor.name}</p>`;
             flavorEl.dataset.flavorName = flavor.name;
             flavorEl.addEventListener('click', handleFlavorAdd);
             flavorEl.querySelector('.flavor-item-remove').addEventListener('click', handleFlavorRemove);
             flavorGrid.appendChild(flavorEl);
+            if (selectedFlavorCounts[flavor.name]) {
+                updateFlavorItemUI(flavorEl, selectedFlavorCounts[flavor.name]);
+            }
         });
         modalOverlay.style.display = 'flex';
     }
@@ -239,18 +234,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleFlavorAdd(e) {
         const flavorElement = e.currentTarget;
         const clickedFlavor = flavorElement.dataset.flavorName;
-
         if (!selectedFlavorCounts[clickedFlavor]) {
             selectedFlavorCounts[clickedFlavor] = 0;
         }
         const totalSelected = Object.values(selectedFlavorCounts).reduce((sum, count) => sum + count, 0);
-
-        if (totalSelected < currentDozenConfig.size) {
+        if (totalSelected < currentModalConfig.size) {
             selectedFlavorCounts[clickedFlavor]++;
             updateFlavorItemUI(flavorElement, selectedFlavorCounts[clickedFlavor]);
             updateFlavorCounter();
         } else {
-            alert(`You have already selected the maximum of ${currentDozenConfig.size} items.`);
+            alert(`You have already selected the maximum of ${currentModalConfig.size} items.`);
         }
     }
 
@@ -258,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         const flavorElement = e.currentTarget.parentElement;
         const clickedFlavor = flavorElement.dataset.flavorName;
-
         if (selectedFlavorCounts[clickedFlavor] && selectedFlavorCounts[clickedFlavor] > 0) {
             selectedFlavorCounts[clickedFlavor]--;
             if (selectedFlavorCounts[clickedFlavor] === 0) {
@@ -283,22 +275,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateFlavorCounter() {
         const totalSelected = Object.values(selectedFlavorCounts).reduce((sum, count) => sum + count, 0);
-        flavorCounter.textContent = `${totalSelected} of ${currentDozenConfig.size} selected`;
-        addDozenToCartBtn.disabled = totalSelected !== currentDozenConfig.size;
+        const buttonText = currentModalConfig.isMultiSingle ? 'Update Cart' : 'Add to Cart';
+        addDozenToCartBtn.textContent = buttonText;
+        flavorCounter.textContent = `${totalSelected} of ${currentModalConfig.size} selected`;
+        
+        const isButtonDisabled = currentModalConfig.isMultiSingle 
+            ? false
+            : totalSelected !== currentModalConfig.size;
+        addDozenToCartBtn.disabled = isButtonDisabled;
     }
 
     function addSelectionToCart() {
-        const totalSelected = Object.values(selectedFlavorCounts).reduce((sum, count) => sum + count, 0);
-        if (totalSelected !== currentDozenConfig.size) return;
-
-        const targetInput = document.querySelector(`.pos-quantity[data-name="${currentDozenConfig.name}"]`);
-        targetInput.value = (parseInt(targetInput.value) || 0) + 1;
-        const existingSelections = JSON.parse(targetInput.dataset.flavors || '[]');
-        const newSelectionString = Object.entries(selectedFlavorCounts)
-            .map(([name, quantity]) => `${quantity}x ${name}`)
-            .join(', ');
-        existingSelections.push(newSelectionString);
-        targetInput.dataset.flavors = JSON.stringify(existingSelections);
+        const targetInput = document.querySelector(`.pos-quantity[data-name="${currentModalConfig.name}"]`);
+        
+        if (currentModalConfig.isMultiSingle) {
+            const totalSelected = Object.values(selectedFlavorCounts).reduce((sum, count) => sum + count, 0);
+            targetInput.value = totalSelected;
+            targetInput.dataset.flavors = totalSelected > 0 ? JSON.stringify(selectedFlavorCounts) : '';
+        } else {
+            if (Object.values(selectedFlavorCounts).reduce((s, c) => s + c, 0) !== currentModalConfig.size) return;
+            targetInput.value = (parseInt(targetInput.value) || 0) + 1;
+            const existingSelections = JSON.parse(targetInput.dataset.flavors || '[]');
+            const newSelectionString = Object.entries(selectedFlavorCounts).map(([name, quantity]) => `${quantity}x ${name}`).join(', ');
+            existingSelections.push(newSelectionString);
+            targetInput.dataset.flavors = JSON.stringify(existingSelections);
+        }
         calculatePosTotal();
         closeFlavorModal();
     }
@@ -307,18 +308,71 @@ document.addEventListener('DOMContentLoaded', () => {
         modalOverlay.style.display = 'none';
     }
 
+    function updateCartDisplay() {
+        const cartItems = [];
+        document.querySelectorAll('.pos-quantity').forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            if (quantity > 0) {
+                cartItems.push({
+                    name: input.dataset.name,
+                    quantity: quantity,
+                    flavors: input.dataset.flavors ? JSON.parse(input.dataset.flavors) : null
+                });
+            }
+        });
+
+        if (cartItems.length > 0) {
+            let html = '';
+            cartItems.forEach(item => {
+                const itemConfig = posItems.find(p => p.name === item.name);
+                html += `<div class="cart-summary-item">`;
+                html += `<div class="cart-summary-main"><strong>${item.quantity}x</strong> ${item.name}</div>`;
+
+                if (item.flavors) {
+                    if (itemConfig.isMultiSingle) {
+                        const flavorString = Object.entries(item.flavors)
+                            .filter(([name, qty]) => qty > 0)
+                            .map(([name, qty]) => `${qty}x ${name}`)
+                            .join(', ');
+                        if (flavorString) {
+                           html += `<span class="cart-summary-flavors">&ndash; ${flavorString}</span>`;
+                        }
+                    } else if (itemConfig.isDozen) {
+                        item.flavors.forEach(flavorString => {
+                            const cleanedFlavorString = flavorString.split(', ')
+                                .filter(part => !part.startsWith('0x'))
+                                .join(', ');
+                            if (cleanedFlavorString) {
+                                html += `<span class="cart-summary-flavors">&ndash; ${cleanedFlavorString}</span>`;
+                            }
+                        });
+                    }
+                }
+                html += `</div>`;
+            });
+            currentCartDisplay.innerHTML = html;
+            currentCartSection.style.display = 'block';
+        } else {
+            currentCartDisplay.innerHTML = '';
+            currentCartSection.style.display = 'none';
+        }
+    }
+
     function calculatePosTotal() {
         let total = 0;
         document.querySelectorAll('.pos-quantity').forEach(input => {
-            total += (parseFloat(input.dataset.price) || 0) * (parseInt(input.value) || 0);
+            const price = parseFloat(input.dataset.price);
+            const quantity = parseInt(input.value) || 0;
+            total += price * quantity;
         });
         posTotalDisplay.textContent = `$${total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        updateCartDisplay();
         return total;
     }
 
     function clearCart() {
         document.querySelectorAll('.pos-quantity').forEach(input => {
-            input.value = '';
+            input.value = '0';
             if (input.dataset.flavors) delete input.dataset.flavors;
         });
         calculatePosTotal();
@@ -332,19 +386,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const totalAmount = calculatePosTotal();
         if (totalAmount <= 0) return;
-        
+
         const employeeName = employeeSelect.options[employeeSelect.selectedIndex].dataset.name;
         const itemsSold = [];
+
         document.querySelectorAll('.pos-quantity').forEach(input => {
             const quantity = parseInt(input.value) || 0;
             if (quantity > 0) {
                 const item = { itemName: input.dataset.name, quantity };
-                if (input.dataset.flavors) {
+                const itemConfig = posItems.find(p => p.name === input.dataset.name);
+
+                if (itemConfig.isMultiSingle && input.dataset.flavors) {
+                    const flavorCounts = JSON.parse(input.dataset.flavors);
+                    const flavorString = Object.entries(flavorCounts).map(([name, qty]) => `${qty}x ${name}`).join(', ');
+                    if (flavorString) item.flavorSelections = [flavorString];
+                } else if (itemConfig.isDozen && input.dataset.flavors) {
                     item.flavorSelections = JSON.parse(input.dataset.flavors);
                 }
                 itemsSold.push(item);
             }
         });
+
+        if (itemsSold.length === 0) return;
 
         checkoutPosBtn.disabled = true;
         try {
@@ -370,7 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
         db = firebaseDetail.db;
         firestore = firebaseDetail.functions;
         renderPosItems();
-
         if (checkEmployeeSession()) {
             updateView(true);
             await loadEmployees();
@@ -398,9 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         hideLoadingScreen();
     }
-
-    // --- Event Listeners (Grouped at the end) ---
-    posItemsContainer.addEventListener('input', calculatePosTotal);
+    
+    // --- Event Listeners & Initializer ---
     clearPosBtn.addEventListener('click', clearCart);
     checkoutPosBtn.addEventListener('click', logSale);
     employeeSelect.addEventListener('change', (e) => {
@@ -411,8 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clockOutBtn.addEventListener('click', clockOut);
     addDozenToCartBtn.addEventListener('click', addSelectionToCart);
     cancelDozenBtn.addEventListener('click', closeFlavorModal);
-    
-    // --- Initializer & Race Condition Handler ---
+
     if (DEV_MODE) {
         updateView(true);
         renderPosItems();

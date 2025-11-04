@@ -330,3 +330,34 @@ tr:nth-child(even) { background-color: rgba(245, 245, 220, 0.2); } /* Transparen
   .flavor-item-remove:hover {
     background-color: #e74c3c; /* Brighter red on hover */
   }
+  /* === NEW: Styles for Current Cart Summary === */
+.cart-summary-item {
+  padding: 8px;
+  border-bottom: 1px solid #D2B48C; /* Tan */
+  color: #3D352E;
+}
+.cart-summary-item:last-child {
+  border-bottom: none;
+}
+
+.cart-summary-main {
+  font-weight: bold;
+}
+
+.cart-summary-flavors {
+  font-size: 0.85rem;
+  color: #5a4d41;
+  padding-left: 20px; /* Indent the flavor list */
+  display: block; /* Ensure it appears on a new line */
+  margin-top: 5px;
+}
+
+#current-cart-display {
+  border: 1px solid #D2B48C; /* Tan border */
+  border-radius: 8px;
+  background-color: rgba(255, 250, 240, 0.7); /* Transparent Floral White */
+  padding: 10px;
+  text-align: left;
+  margin-bottom: 20px; /* Adds a nice space between the cart and the buttons below it */
+  /* --- NOTE: There is NO max-height or overflow property here --- */
+}
